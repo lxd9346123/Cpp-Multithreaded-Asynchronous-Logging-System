@@ -9,6 +9,19 @@
 #include <sstream>
 #include <iomanip>
 
+#include "LogLevel.h"
+
+#define mLOG_INFO(format, ...) mTool::mLog::GetInstance().print(mTool::LogLevel::INFO,format,##__VA_ARGS__)
+#ifdef DEBUG_ENV
+#define mLOG_DEBUG(format, ...) mTool::mLog::GetInstance().print(mTool::LogLevel::DEBUG,format,##__VA_ARGS__)
+#else
+#define mLOG_DEBUG(format, ...) ((void)0)
+#endif
+#define mLOG_WARN(format, ...) mTool::mLog::GetInstance().print(mTool::LogLevel::WARN,format,##__VA_ARGS__)
+#define mLOG_ERROR(format, ...) mTool::mLog::GetInstance().print(mTool::LogLevel::ERROR,format,##__VA_ARGS__)
+
+namespace mTool{
+
 class mLog{
 public:
     static mLog& GetInstance(){
@@ -17,11 +30,13 @@ public:
     }
 
     template<class... Args>
-    void print(const char* format,Args... args){
+    void print(LogLevel level, const char* format,Args... args){
         std::string msg = formatString(format,args...);
         std::cout << getCurrentTimeString()
-                  << " "
+                  << to_color(level)
+                  << to_string(level)
                   << msg
+                  << "\033[0m"
                   << std::endl;
     }
 private:
@@ -55,4 +70,5 @@ private:
     }
 };
 
+}
 #endif

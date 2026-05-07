@@ -2,6 +2,6 @@
 
 int main(int argc, char const *argv[])
 {
-    mLog::GetInstance().print("haha%s","123");
+    mLOG_DEBUG("haha %d",23);
     return 0;
 }

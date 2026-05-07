@@ -14,3 +14,5 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # )
 
 add_executable(example examples/example.cpp)
+target_compile_definitions(example PRIVATE DEBUG_ENV)
+
