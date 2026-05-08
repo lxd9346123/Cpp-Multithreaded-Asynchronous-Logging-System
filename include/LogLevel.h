@@ -12,6 +12,11 @@ enum class LogLevel{
     ERROR
 };
 
+enum class TimeLogLevel{
+    FILE_NAME,
+    LOG_NAME
+};
+
 inline std::string to_string(const LogLevel& level){
     switch (level){
         case LogLevel::INFO : return " [INFO] ";

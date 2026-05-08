@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <chrono>
 #include <ctime>
@@ -13,6 +14,7 @@
 #include <thread>
 #include <condition_variable>
 #include <atomic>
+#include <utility>
 
 #include "LogLevel.h"
 
@@ -37,16 +39,17 @@ public:
     template<class... Args>
     void print(LogLevel level, const char* format,Args... args){
         std::string msg = formatString(format,args...);
-        msg = getCurrentTimeString() + to_color(level) + to_string(level)
-                + msg + "\033[0m";
+        msg = getCurrentTimeString(TimeLogLevel::LOG_NAME) + to_string(level) + msg;
         {
         std::lock_guard<std::mutex> lock(mtx_);
-        msg_.push(msg);
+        msg_.push({level, std::move(msg)});
         }
         cv_.notify_one();
     }
 private:
-    mLog(): running_(true), handle_msg_(&mLog::handle_msg,this){};                               // 构造函数
+    mLog(): running_(true), handle_msg_(&mLog::handle_msg,this){
+        file_.open(getCurrentTimeString(TimeLogLevel::FILE_NAME) + ".log",std::ofstream::app);
+    };                                      // 构造函数
     mLog(const mLog&) = delete;             // 禁用拷贝
     mLog& operator=(const mLog&) = delete;  // 禁用传递
     ~mLog(){
@@ -54,6 +57,7 @@ private:
         cv_.notify_one();
         if (handle_msg_.joinable())
             handle_msg_.join();
+        file_.close();
     }
 
     template<class... Args>
@@ -66,7 +70,7 @@ private:
         return std::string(buffer.data());
     }
 
-    std::string getCurrentTimeString(){
+    std::string getCurrentTimeString(TimeLogLevel level){
         auto now = std::chrono::system_clock::now();
         std::time_t time = std::chrono::system_clock::to_time_t(now);
 
@@ -77,7 +81,10 @@ private:
         localtime_r(&time, &tm_time);
     #endif
         std::ostringstream oss;
-        oss << std::put_time(&tm_time, "[%Y-%m-%d %H:%M:%S]");
+        if (level == TimeLogLevel::LOG_NAME)
+            oss << std::put_time(&tm_time, "[%Y-%m-%d %H:%M:%S]");
+        else if (level == TimeLogLevel::FILE_NAME)
+            oss << std::put_time(&tm_time, "%Y-%m-%d_%H-%M-%S");
         return oss.str();
     }
 
@@ -87,18 +94,21 @@ private:
             cv_.wait(lock,[this](){return !msg_.empty() || !running_;});
             if (msg_.empty())
                 break;
-            std::cout << msg_.front() << std::endl;
+            auto& [level, text] = msg_.front();
+            std::cout << to_color(level) << text << "\033[0m" << std::endl;
+            file_ << text << std::endl;
             msg_.pop();
         }
-        // 退出前清空剩余log
         while (!msg_.empty()){
-            std::cout << msg_.front() << std::endl;
+            auto& [level, text] = msg_.front();
+            std::cout << to_color(level) << text << "\033[0m" << std::endl;
             msg_.pop();
         }
     }
 
     std::mutex mtx_;
-    std::queue<std::string> msg_;
+    std::ofstream file_;
+    std::queue<std::pair<LogLevel, std::string>> msg_;
     std::condition_variable cv_;
     std::atomic<bool> running_;
     std::thread handle_msg_;
