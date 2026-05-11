@@ -33,7 +33,7 @@ inline std::string to_color(const LogLevel& level){
         case LogLevel::DEBUG : return "\033[36m";
         case LogLevel::WARN : return "\033[33m";
         case LogLevel::ERROR : return "\033[31m";
-        default : return "[unkown]";
+        default : return "[unknown]";
     }
 }
 
