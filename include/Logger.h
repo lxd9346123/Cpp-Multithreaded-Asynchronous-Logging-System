@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <utility>
+#include <filesystem>
 
 #include "LogLevel.h"
 
@@ -48,7 +49,8 @@ public:
     }
 private:
     mLog(): running_(true), handle_msg_(&mLog::handle_msg,this){
-        file_.open(getCurrentTimeString(TimeLogLevel::FILE_NAME) + ".log",std::ofstream::app);
+        std::filesystem::create_directories("log/");
+        file_.open("log/" + getCurrentTimeString(TimeLogLevel::FILE_NAME) + ".log", std::ofstream::app);
     };                                      // 构造函数
     mLog(const mLog&) = delete;             // 禁用拷贝
     mLog& operator=(const mLog&) = delete;  // 禁用传递
@@ -102,6 +104,7 @@ private:
         while (!msg_.empty()){
             auto& [level, text] = msg_.front();
             std::cout << to_color(level) << text << "\033[0m" << std::endl;
+            file_ << text << std::endl;
             msg_.pop();
         }
     }
